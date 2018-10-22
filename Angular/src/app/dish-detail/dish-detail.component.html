@@ -9,7 +9,7 @@
           <h3>{{dish.name | uppercase}}</h3>
         </mat-card-title>
       </mat-card-header>
-      <img mat-card-image src={{dish.image}} alt={{dish.name}}>
+      <img  mat-card-image src="{{ baseURL + dish.image }}" alt={{dish.name}}>
       <mat-card-content>
         <p>{{dish.description}}
         </p>
@@ -46,7 +46,7 @@
       </mat-list-item>
     </mat-list>
 
-    <div class="form-size">
+    <div class="form-size" [hidden]="!dish || errMess ">
       <form novalidate [formGroup]="commentForm" #cform="ngForm" (ngSubmit)="onSubmit()">
         <p>
           <mat-form-field class="full-width">
@@ -68,4 +68,13 @@
     </div>
   </div>
 
+  <div fxFlex [hidden]="dish ||errMess ">
+    <mat-spinner></mat-spinner>
+    <h4>Loading . . . Please Wait</h4>
+  </div>
+  <div fxFlex *ngIf="errMess">
+    <h2>Error</h2>
+    <h4>{{errMess}}</h4>
+  </div>
+  
 </div>

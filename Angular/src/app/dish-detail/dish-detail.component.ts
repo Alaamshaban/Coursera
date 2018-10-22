@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, ViewChild } from "@angular/core";
+import { Component, OnInit, Input, ViewChild, Inject } from "@angular/core";
 import { Dish } from "../shared/dish";
 import { DishService } from "../services/dish.service";
 import { Params, ActivatedRoute } from "@angular/router";
@@ -6,7 +6,7 @@ import { Location } from "@angular/common";
 import { switchMap } from "rxjs/operators";
 import { FormBuilder, FormGroup, Validators } from "@angular/forms";
 import { Comment } from "../shared/comment";
-
+import { baseURL } from "../shared/baseurl";
 @Component({
   selector: "app-dishdetail",
   templateUrl: "./dish-detail.component.html",
@@ -19,9 +19,11 @@ export class DishDetailComponent implements OnInit {
   commentForm: FormGroup;
   comment: Comment;
   dish: Dish;
+  dishcopy: Dish;
   dishIds: string[];
   prev: string;
   next: string;
+  errMess: string;
 
   formErrors = {
     author: "",
@@ -42,7 +44,8 @@ export class DishDetailComponent implements OnInit {
     private dishservice: DishService,
     private route: ActivatedRoute,
     private location: Location,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    @Inject("BaseURL") private baseURL
   ) {
     this.createForm();
   }
@@ -50,15 +53,22 @@ export class DishDetailComponent implements OnInit {
   ngOnInit() {
     this.dishservice
       .getDishIds()
-      .subscribe(dishIds => (this.dishIds = dishIds));
+      .subscribe(
+        dishIds => (this.dishIds = dishIds),
+        errmess => (this.errMess = <any>errmess)
+      );
     this.route.params
       .pipe(
         switchMap((params: Params) => this.dishservice.getDish(params["id"]))
       )
-      .subscribe(dish => {
-        this.dish = dish;
-        this.setPrevNext(dish.id);
-      });
+      .subscribe(
+        dish => {
+          this.dish = dish;
+          this.dishcopy = dish;
+          this.setPrevNext(dish.id);
+        },
+        errmess => (this.errMess = <any>errmess)
+      );
   }
 
   createForm() {
@@ -98,13 +108,24 @@ export class DishDetailComponent implements OnInit {
     this.comment = this.commentForm.value;
     this.commentFormDirective.resetForm();
     this.commentForm.reset({
-      author: '',
-      comment: '',
-      rating: 5,
+      author: "",
+      comment: "",
+      rating: 5
     });
-    this.comment.date=new Date().toISOString();
-    this.dish.comments.push(this.comment)
+    this.comment.date = new Date().toISOString();
 
+    this.dishcopy.comments.push(this.comment);
+    this.dishservice.putDish(this.dishcopy).subscribe(
+      dish => {
+        this.dish = dish;
+        this.dishcopy = dish;
+      },
+      errmess => {
+        this.dish = null;
+        this.dishcopy = null;
+        this.errMess = <any>errmess;
+      }
+    );
   }
 
   setPrevNext(dishId: string) {
